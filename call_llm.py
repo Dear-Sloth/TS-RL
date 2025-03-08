@@ -2,7 +2,8 @@
 from openai import OpenAI
 import aiohttp
 import asyncio
-
+TIMEOUT = 6000  
+MAX_RETRIES = 3 
 def call_llm(system, user):
     client = OpenAI(api_key="sk-350fda12de864af383621d1928c179a4", base_url="https://api.deepseek.com")
 
@@ -36,13 +37,26 @@ async def async_call_llm(system, user):
         "max_tokens": 8000,
         "temperature": 1.0,
     }
+    
+    timeout = aiohttp.ClientTimeout(total=TIMEOUT)
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=payload, headers=headers) as response:
-            if response.status == 200:
-                data = await response.json()
-                reasoning_content = data["choices"][0]["message"]["reasoning_content"]
-                content = data["choices"][0]["message"]["content"]
-                return reasoning_content, content
-            else:
-                return None, None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(url, json=payload, headers=headers) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        reasoning_content = data["choices"][0]["message"]["reasoning_content"]
+                        content = data["choices"][0]["message"]["content"]
+                        return reasoning_content, content
+                    else:
+                        print(f"⚠️ API 调用失败，状态码: {response.status}，第 {attempt} 次重试\n")
+        except asyncio.TimeoutError:
+            print(f"⚠️ API 超时，正在进行第 {attempt} 次重试...\n")
+        except aiohttp.ClientError as e:
+            print(f"⚠️ API 请求失败（{e}），第 {attempt} 次重试...\n")
+        
+        await asyncio.sleep(2 ** attempt)  
+
+    print("API 调用失败，所有重试均已耗尽")
+    return None, None  
