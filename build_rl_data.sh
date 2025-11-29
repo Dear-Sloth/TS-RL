@@ -1,0 +1,1 @@
+python tsrl/rl_data_builder.py --root_path tsrl/m4 --output_dir tsrl/rl_data --seasonal_patterns Yearly 

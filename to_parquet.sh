@@ -1,0 +1,1 @@
+python tsrl/jsonl_to_parquet.py --input tsrl/rl_data/_Quarterly/train.jsonl --train-output tsrl/rl_data/_Quarterly/train.parquet --test-output tsrl/rl_data/_Quarterly/test.parquet --test-ratio 0.1 --no-shuffle
